@@ -6,14 +6,14 @@
 <title>StumbleMod</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0a0a0f;--card:#12121a;--card2:#16161f;--accent:#3b93ff;--accent2:#5ba8ff;--text:#e8eaf0;--text2:#8890a4;--red:#ff4466;--green:#22dd77;--border:#22223a}
+:root{--bg:#050a05;--card:#0a140a;--card2:#0d180d;--accent:#39ff14;--accent2:#5bff42;--text:#e0f5e0;--text2:#7aa87a;--red:#ff4466;--green:#39ff14;--border:#1a3a1a}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .bg-anim{position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:-1;pointer-events:none}
 .container{width:100%;max-width:420px;padding:20px;position:relative;z-index:1}
 .logo-wrap{text-align:center;margin-bottom:32px}
-.logo-wrap h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px}
+.logo-wrap h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,#39ff14,#00ff88);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px;text-shadow:0 0 30px rgba(57,255,20,.3)}
 .logo-wrap p{color:var(--text2);font-size:14px;margin-top:6px}
-.card{background:rgba(18,18,26,0.85);border:1px solid var(--border);border-radius:16px;padding:32px;backdrop-filter:blur(20px)}
+.card{background:rgba(8,16,8,0.88);border:1px solid rgba(57,255,20,.15);border-radius:16px;padding:32px;backdrop-filter:blur(20px);box-shadow:0 0 40px rgba(57,255,20,.05)}
 .tabs{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:24px}
 .tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text2);transition:.2s}
 .tab.active{background:var(--accent);color:#fff}
@@ -21,17 +21,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .form-group{margin-bottom:16px}
 .form-group label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .form-group input{width:100%;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;outline:none;transition:.2s}
-.form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,147,255,.15)}
+.form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(57,255,20,.15)}
 .form-group input::placeholder{color:#555}
-.btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#5b7cff);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;margin-top:8px}
-.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(59,147,255,.25)}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#39ff14,#00cc44);border:none;border-radius:10px;color:#000;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;margin-top:8px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(57,255,20,.35)}
 .btn:active{transform:translateY(0)}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .msg{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;margin-top:16px;display:none}
 .msg.err{display:block;background:rgba(255,68,102,.1);border:1px solid rgba(255,68,102,.2);color:var(--red)}
 .msg.ok{display:block;background:rgba(34,221,119,.1);border:1px solid rgba(34,221,119,.2);color:var(--green)}
 .profile{display:none}
-.profile .avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin:0 auto 16px}
+.profile .avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#39ff14,#00cc44);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#000;margin:0 auto 16px;box-shadow:0 0 20px rgba(57,255,20,.3)}
 .profile h2{text-align:center;font-size:20px;margin-bottom:4px}
 .profile .sub{text-align:center;color:var(--text2);font-size:14px;margin-bottom:24px}
 .profile .info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
@@ -43,6 +43,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .btn-outline:hover{border-color:var(--accent);color:var(--accent)}
 .btn-sm{padding:10px 20px;font-size:13px;margin-top:12px}
 .btn-danger{background:linear-gradient(135deg,#ff4466,#cc2244)}
+.tab.active{background:linear-gradient(135deg,#39ff14,#00cc44);color:#000}
+.btn-outline:hover{border-color:#39ff14;color:#39ff14}
 </style>
 </head>
 <body>
