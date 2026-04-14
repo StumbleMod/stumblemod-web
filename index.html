@@ -43,6 +43,11 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .btn-outline:hover{border-color:var(--accent);color:var(--accent)}
 .btn-sm{padding:10px 20px;font-size:13px;margin-top:12px}
 .btn-danger{background:linear-gradient(135deg,#ff4466,#cc2244)}
+.btn-launch{width:100%;padding:16px;background:linear-gradient(135deg,#39ff14,#00cc44);border:none;border-radius:12px;color:#000;font-size:17px;font-weight:800;cursor:pointer;transition:.2s;margin-top:20px;text-transform:uppercase;letter-spacing:1px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(57,255,20,.3)}
+.btn-launch:hover{transform:translateY(-2px);box-shadow:0 0 35px rgba(57,255,20,.5)}
+.btn-launch:active{transform:translateY(0)}
+.btn-launch::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 60%);animation:pulse-glow 2s ease-in-out infinite}
+@keyframes pulse-glow{0%,100%{opacity:.5;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
 .tab.active{background:linear-gradient(135deg,#39ff14,#00cc44);color:#000}
 .btn-outline:hover{border-color:#39ff14;color:#39ff14}
 </style>
@@ -119,6 +124,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     </div>
 
     <div class="msg" id="profMsg"></div>
+    <button class="btn-launch" onclick="launchGame()">&#9654; Launch StumbleMod</button>
     <button class="btn-outline" onclick="logout()">Logout</button>
   </div>
 </div>
@@ -221,6 +227,10 @@ async function updateDisplayName(){
     document.getElementById('profAvatar').textContent=dn[0].toUpperCase();
     showMsg('profMsg','Display name updated!',true);
   }catch(err){showMsg('profMsg',err.message,false)}
+}
+
+function launchGame(){
+  window.location.href='steam://rungameid/1677740';
 }
 
 function logout(){
