@@ -47,7 +47,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .btn-launch:active{transform:translateY(0)}
 .btn-launch::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 60%);animation:pulse-glow 2s ease-in-out infinite}
 @keyframes pulse-glow{0%,100%{opacity:.5;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
-.hint{font-size:12px;color:var(--text2);margin-top:8px;text-align:center}
+.link{background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;text-align:center;width:100%;margin-top:8px;padding:4px;font-weight:500;transition:.2s}
+.link:hover{color:var(--accent);text-decoration:underline}
+.hint{font-size:12px;color:var(--text2);margin-top:8px;text-align:center;padding:8px 4px;line-height:1.5}
+.hint code{color:var(--accent);background:rgba(57,255,20,.08);padding:2px 6px;border-radius:4px;font-family:Consolas,monospace}
 </style>
 </head>
 <body>
@@ -66,24 +69,25 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
     <form id="loginForm" onsubmit="return doLogin(event)">
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="lUser" placeholder="Enter username" required autocomplete="username">
+        <label>Email</label>
+        <input type="email" id="lEmail" placeholder="your@email.com" required autocomplete="email">
       </div>
       <div class="form-group">
         <label>Password</label>
         <input type="password" id="lPass" placeholder="Enter password" required autocomplete="current-password">
       </div>
       <button class="btn" type="submit" id="lBtn">Login</button>
+      <button type="button" class="link" onclick="doForgot()">Forgot password?</button>
     </form>
 
     <form id="registerForm" style="display:none" onsubmit="return doRegister(event)">
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="rUser" placeholder="Choose a username" required autocomplete="username" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]+">
+        <label>Email</label>
+        <input type="email" id="rEmail" placeholder="your@email.com" required autocomplete="email">
       </div>
       <div class="form-group">
         <label>Display Name</label>
-        <input type="text" id="rDisplay" placeholder="Your in-game display name" maxlength="32">
+        <input type="text" id="rDisplay" placeholder="Your in-game display name" maxlength="32" required>
       </div>
       <div class="form-group">
         <label>Password</label>
@@ -109,6 +113,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
       <span class="value" id="profDisplay">-</span>
     </div>
     <div class="info-row">
+      <span class="label">Email</span>
+      <span class="value" id="profEmail">-</span>
+    </div>
+    <div class="info-row">
       <span class="label">Account Created</span>
       <span class="value" id="profCreated">-</span>
     </div>
@@ -123,7 +131,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
     <div class="msg" id="profMsg"></div>
     <button class="btn-launch" onclick="launchGame()">&#9654; Launch StumbleMod</button>
-    <div class="hint">Copy the session token below and save it in <code>Mods/StumbleMod_auth.json</code> to login in-game.</div>
+    <div class="hint">
+      Click <strong>Copy Session Token</strong>, then paste the clipboard into<br>
+      <code>Mods/StumbleMod_auth.json</code>
+    </div>
     <button class="btn-outline" onclick="copyToken()">Copy Session Token</button>
     <button class="btn-outline" onclick="logout()">Logout</button>
   </div>
@@ -132,17 +143,11 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 <script>
 const SUPABASE_URL = 'https://hdgjprvsaovblpnukjys.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_bCpptbzpNzoClmDfRDewOw_oV_zerV-';
-const EMAIL_DOMAIN = '@stumblemod.app';
-
-function usernameToEmail(u) { return u.trim().toLowerCase() + EMAIL_DOMAIN; }
 
 let session = null;
-try {
-  const raw = localStorage.getItem('sm_session');
-  if (raw) session = JSON.parse(raw);
-} catch(e) {}
-
+try { const raw = localStorage.getItem('sm_session'); if (raw) session = JSON.parse(raw); } catch(e) {}
 let profile = null;
+let authUserEmail = '';
 
 if (session?.access_token) loadProfile();
 
@@ -170,8 +175,8 @@ function authHeaders() {
 async function doRegister(e) {
   e.preventDefault();
   const btn = document.getElementById('rBtn');
-  const username = document.getElementById('rUser').value.trim();
-  const display = (document.getElementById('rDisplay').value.trim()) || username;
+  const email = document.getElementById('rEmail').value.trim().toLowerCase();
+  const display = document.getElementById('rDisplay').value.trim();
   const pw = document.getElementById('rPass').value;
   if (pw !== document.getElementById('rPass2').value) {
     showMsg('authMsg', 'Passwords do not match', false);
@@ -180,17 +185,26 @@ async function doRegister(e) {
   btn.disabled = true; btn.textContent = 'Creating...';
   clearMsg('authMsg');
   try {
+    // Check display name availability first
+    const availR = await fetch(SUPABASE_URL + '/rest/v1/rpc/is_display_name_available', {
+      method: 'POST', headers: baseHeaders(),
+      body: JSON.stringify({ p_name: display })
+    });
+    if (availR.ok) {
+      const txt = (await availR.text()).trim();
+      if (txt !== 'true') throw new Error('Display name already taken');
+    }
+
     const body = {
-      email: usernameToEmail(username),
-      password: pw,
-      data: { username, display_name: display }
+      email, password: pw,
+      data: { display_name: display }
     };
     const r = await fetch(SUPABASE_URL + '/auth/v1/signup', {
       method: 'POST', headers: baseHeaders(), body: JSON.stringify(body)
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.msg || d.error_description || d.error || 'Registration failed');
-    if (!d.access_token) throw new Error('Email confirmation required. Disable it in Supabase -> Authentication -> Providers -> Email.');
+    if (!d.access_token) throw new Error('Email confirmation required. Disable it in Supabase Dashboard -> Authentication -> Providers -> Email.');
 
     session = { access_token: d.access_token, refresh_token: d.refresh_token };
     localStorage.setItem('sm_session', JSON.stringify(session));
@@ -206,14 +220,13 @@ async function doRegister(e) {
 async function doLogin(e) {
   e.preventDefault();
   const btn = document.getElementById('lBtn');
-  const username = document.getElementById('lUser').value.trim();
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
   const pw = document.getElementById('lPass').value;
   btn.disabled = true; btn.textContent = 'Logging in...';
   clearMsg('authMsg');
   try {
-    const body = { email: usernameToEmail(username), password: pw };
     const r = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-      method: 'POST', headers: baseHeaders(), body: JSON.stringify(body)
+      method: 'POST', headers: baseHeaders(), body: JSON.stringify({ email, password: pw })
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error_description || d.msg || d.error || 'Login failed');
@@ -229,24 +242,46 @@ async function doLogin(e) {
   return false;
 }
 
+async function doForgot() {
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
+  clearMsg('authMsg');
+  if (!email) { showMsg('authMsg', 'Enter your email first', false); return; }
+
+  try {
+    const r = await fetch(SUPABASE_URL + '/auth/v1/recover', {
+      method: 'POST', headers: baseHeaders(),
+      body: JSON.stringify({ email, redirect_to: location.origin + location.pathname })
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.msg || d.error_description || d.error || 'Could not send reset email');
+    }
+    showMsg('authMsg', 'Password reset email sent! Check your inbox.', true);
+  } catch (err) {
+    showMsg('authMsg', err.message, false);
+  }
+}
+
 async function loadProfile() {
   try {
     const userR = await fetch(SUPABASE_URL + '/auth/v1/user', { headers: authHeaders() });
     if (!userR.ok) { logout(); return; }
     const u = await userR.json();
+    authUserEmail = u.email || '';
 
     const profR = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + u.id + '&select=*', { headers: authHeaders() });
     const profArr = await profR.json();
-    profile = (profArr && profArr[0]) || { id: u.id, username: '?', display_name: '?', created_at: u.created_at };
+    profile = (profArr && profArr[0]) || { id: u.id, email: authUserEmail, display_name: u.email?.split('@')[0] || '?', created_at: u.created_at };
 
     document.getElementById('authCard').style.display = 'none';
     document.getElementById('profileCard').style.display = 'block';
 
-    const name = profile.display_name || profile.username;
+    const name = profile.display_name || authUserEmail.split('@')[0];
     document.getElementById('profAvatar').textContent = (name[0] || '?').toUpperCase();
     document.getElementById('profName').textContent = name;
-    document.getElementById('profUser').textContent = '@' + profile.username;
+    document.getElementById('profUser').textContent = authUserEmail;
     document.getElementById('profDisplay').textContent = profile.display_name || 'Not set';
+    document.getElementById('profEmail').textContent = authUserEmail;
     document.getElementById('editDisplay').value = profile.display_name || '';
     const created = new Date(profile.created_at || u.created_at);
     document.getElementById('profCreated').textContent = created.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -258,13 +293,12 @@ async function updateDisplayName() {
   if (!dn) { showMsg('profMsg', 'Enter a display name', false); return; }
   clearMsg('profMsg');
   try {
-    // Check availability via RPC
     const availR = await fetch(SUPABASE_URL + '/rest/v1/rpc/is_display_name_available', {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ p_name: dn, p_exclude_user: profile.id })
     });
     const availBody = await availR.text();
-    if (availBody.trim() !== 'true') throw new Error('Name already taken');
+    if (availBody.trim() !== 'true') throw new Error('Display name already taken');
 
     const r = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + profile.id, {
       method: 'PATCH',
@@ -308,7 +342,7 @@ function logout() {
     fetch(SUPABASE_URL + '/auth/v1/logout', { method: 'POST', headers: authHeaders() }).catch(() => {});
   }
   localStorage.removeItem('sm_session');
-  session = null; profile = null;
+  session = null; profile = null; authUserEmail = '';
   document.getElementById('authCard').style.display = '';
   document.getElementById('profileCard').style.display = 'none';
   clearMsg('authMsg'); clearMsg('profMsg');
