@@ -182,12 +182,27 @@ if (session?.access_token && !recoveryMode) loadProfile();
 
 function showConfirmScreen(email) {
   document.getElementById('authCard').innerHTML =
-    '<div style="text-align:center;padding:16px 0">' +
-    '<div style="font-size:48px;margin-bottom:16px">&#128231;</div>' +
-    '<h2 style="margin-bottom:12px;color:var(--accent)">Check your email</h2>' +
-    '<p style="color:var(--text);margin-bottom:20px">We sent a confirmation link to:<br><strong>' + email + '</strong></p>' +
-    '<p style="color:var(--text2);font-size:13px;margin-bottom:20px">Click the link in the email to activate your account. After that, come back here and log in.</p>' +
-    '<button class="btn-outline" onclick="location.reload()">Back to Login</button>' +
+    '<div style="text-align:center;padding:8px 0 4px">' +
+      '<div style="display:inline-flex;width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#9b30ff 0%,#6a1bb0 100%);align-items:center;justify-content:center;margin-bottom:18px;box-shadow:0 8px 24px rgba(155,48,255,0.35)">' +
+        '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' +
+      '</div>' +
+      '<h2 style="margin:0 0 10px;color:#fff;font-size:22px;font-weight:600">Almost there!</h2>' +
+      '<p style="color:var(--text);margin:0 0 6px;font-size:15px;line-height:1.5">We just sent a confirmation link to</p>' +
+      '<p style="color:var(--accent);margin:0 0 22px;font-size:16px;font-weight:600;word-break:break-all">' + email + '</p>' +
+
+      '<div style="background:rgba(155,48,255,0.08);border:1px solid rgba(155,48,255,0.2);border-radius:10px;padding:14px 16px;margin-bottom:22px;text-align:left">' +
+        '<p style="color:var(--text);margin:0 0 8px;font-size:13px;font-weight:600">Quick steps:</p>' +
+        '<ol style="color:var(--text2);margin:0;padding-left:18px;font-size:12px;line-height:1.7">' +
+          '<li>Open your inbox</li>' +
+          '<li>Look for an email from <strong>StumbleMod</strong></li>' +
+          '<li>Click the <em>Activate my account</em> button</li>' +
+          '<li>Come back here to log in</li>' +
+        '</ol>' +
+      '</div>' +
+
+      '<p style="color:var(--text2);font-size:11px;line-height:1.5;margin:0 0 18px">Did not get the email? Check spam, or wait a minute. The email comes from <code style="background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:3px;font-size:11px">noreply@stumblemod.mooo.com</code></p>' +
+
+      '<button class="btn-outline" style="width:100%" onclick="location.reload()">Back to Login</button>' +
     '</div>';
 }
 
