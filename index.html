@@ -130,12 +130,11 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     </div>
 
     <div class="msg" id="profMsg"></div>
-    <button class="btn-launch" onclick="launchGame()">&#9654; Launch StumbleMod</button>
+    <button class="btn btn-launch-style" onclick="copyToken()" style="margin-top:20px">Copy Session Token</button>
     <div class="hint">
-      Click <strong>Copy Session Token</strong>, then paste the clipboard into<br>
+      Paste the clipboard into<br>
       <code>Mods/StumbleMod_auth.json</code>
     </div>
-    <button class="btn-outline" onclick="copyToken()">Copy Session Token</button>
     <button class="btn-outline" onclick="logout()">Logout</button>
   </div>
 </div>
@@ -407,15 +406,6 @@ function copyToken() {
   navigator.clipboard.writeText(payload).then(() => {
     showMsg('profMsg', 'Token copied! Paste it into Mods/StumbleMod_auth.json', true);
   });
-}
-
-function launchGame() {
-  if (session) {
-    const tok = session.access_token + '|' + session.refresh_token;
-    const payload = JSON.stringify({ token: tok });
-    navigator.clipboard.writeText(payload).catch(() => {});
-  }
-  window.location.href = 'stumblemod://launch';
 }
 
 function logout() {
