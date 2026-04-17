@@ -272,10 +272,9 @@ async function doRegister(e) {
     const redirectTo = location.origin + location.pathname;
     const body = {
       email, password: pw,
-      data: { display_name: display },
-      options: { email_redirect_to: redirectTo }
+      data: { display_name: display }
     };
-    const r = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+    const r = await fetch(SUPABASE_URL + '/auth/v1/signup?redirect_to=' + encodeURIComponent(redirectTo), {
       method: 'POST', headers: baseHeaders(), body: JSON.stringify(body)
     });
     const d = await r.json();
