@@ -16,7 +16,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .card{background:rgba(8,16,8,0.88);border:1px solid rgba(57,255,20,.15);border-radius:16px;padding:32px;backdrop-filter:blur(20px);box-shadow:0 0 40px rgba(57,255,20,.05)}
 .tabs{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:24px}
 .tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text2);transition:.2s}
-.tab.active{background:var(--accent);color:#fff}
+.tab.active{background:linear-gradient(135deg,#39ff14,#00cc44);color:#000}
 .tab:hover:not(.active){color:var(--text)}
 .form-group{margin-bottom:16px}
 .form-group label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
@@ -40,16 +40,14 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .profile .info-row .value{font-weight:600;font-size:14px}
 .profile .edit-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
 .btn-outline{width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;transition:.2s;margin-top:12px}
-.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-outline:hover{border-color:#39ff14;color:#39ff14}
 .btn-sm{padding:10px 20px;font-size:13px;margin-top:12px}
-.btn-danger{background:linear-gradient(135deg,#ff4466,#cc2244)}
 .btn-launch{width:100%;padding:16px;background:linear-gradient(135deg,#39ff14,#00cc44);border:none;border-radius:12px;color:#000;font-size:17px;font-weight:800;cursor:pointer;transition:.2s;margin-top:20px;text-transform:uppercase;letter-spacing:1px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(57,255,20,.3)}
 .btn-launch:hover{transform:translateY(-2px);box-shadow:0 0 35px rgba(57,255,20,.5)}
 .btn-launch:active{transform:translateY(0)}
 .btn-launch::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 60%);animation:pulse-glow 2s ease-in-out infinite}
 @keyframes pulse-glow{0%,100%{opacity:.5;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
-.tab.active{background:linear-gradient(135deg,#39ff14,#00cc44);color:#000}
-.btn-outline:hover{border-color:#39ff14;color:#39ff14}
+.hint{font-size:12px;color:var(--text2);margin-top:8px;text-align:center}
 </style>
 </head>
 <body>
@@ -81,19 +79,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     <form id="registerForm" style="display:none" onsubmit="return doRegister(event)">
       <div class="form-group">
         <label>Username</label>
-        <input type="text" id="rUser" placeholder="Choose a username" required autocomplete="username">
+        <input type="text" id="rUser" placeholder="Choose a username" required autocomplete="username" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]+">
       </div>
       <div class="form-group">
         <label>Display Name</label>
-        <input type="text" id="rDisplay" placeholder="Your in-game display name">
+        <input type="text" id="rDisplay" placeholder="Your in-game display name" maxlength="32">
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="rPass" placeholder="Choose a password" required autocomplete="new-password">
+        <input type="password" id="rPass" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6">
       </div>
       <div class="form-group">
         <label>Confirm Password</label>
-        <input type="password" id="rPass2" placeholder="Confirm password" required autocomplete="new-password">
+        <input type="password" id="rPass2" placeholder="Confirm password" required autocomplete="new-password" minlength="6">
       </div>
       <button class="btn" type="submit" id="rBtn">Create Account</button>
     </form>
@@ -118,130 +116,202 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     <div class="edit-section">
       <div class="form-group">
         <label>Change Display Name</label>
-        <input type="text" id="editDisplay" placeholder="New display name">
+        <input type="text" id="editDisplay" placeholder="New display name" maxlength="32">
       </div>
       <button class="btn btn-sm" onclick="updateDisplayName()">Save Display Name</button>
     </div>
 
     <div class="msg" id="profMsg"></div>
     <button class="btn-launch" onclick="launchGame()">&#9654; Launch StumbleMod</button>
+    <div class="hint">Copy the session token below and save it in <code>Mods/StumbleMod_auth.json</code> to login in-game.</div>
+    <button class="btn-outline" onclick="copyToken()">Copy Session Token</button>
     <button class="btn-outline" onclick="logout()">Logout</button>
   </div>
 </div>
 
 <script>
-const API='https://parseapi.back4app.com';
-const APP_ID='4hUEmbmolZczXH3OsUIb1d0O4idwc7jbvbdUdYeg';
-const REST_KEY='BXhMTzIAjkwNyhUTscl9VOQeGBtK4QqoKWKFr8HP';
+const SUPABASE_URL = 'https://hdgjprvsaovblpnukjys.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_bCpptbzpNzoClmDfRDewOw_oV_zerV-';
+const EMAIL_DOMAIN = '@stumblemod.local';
 
-const h={'X-Parse-Application-Id':APP_ID,'X-Parse-REST-API-Key':REST_KEY,'Content-Type':'application/json'};
+function usernameToEmail(u) { return u.trim().toLowerCase() + EMAIL_DOMAIN; }
 
-let session=localStorage.getItem('sm_session');
-let userData=null;
+let session = null;
+try {
+  const raw = localStorage.getItem('sm_session');
+  if (raw) session = JSON.parse(raw);
+} catch(e) {}
 
-if(session) loadProfile();
+let profile = null;
 
-function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',i===(t==='login'?0:1)));
-  document.getElementById('loginForm').style.display=t==='login'?'':'none';
-  document.getElementById('registerForm').style.display=t==='register'?'':'none';
+if (session?.access_token) loadProfile();
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', i === (t === 'login' ? 0 : 1)));
+  document.getElementById('loginForm').style.display = t === 'login' ? '' : 'none';
+  document.getElementById('registerForm').style.display = t === 'register' ? '' : 'none';
   clearMsg('authMsg');
 }
 
-function showMsg(id,text,ok){
-  const el=document.getElementById(id);
-  el.textContent=text;
-  el.className='msg '+(ok?'ok':'err');
+function showMsg(id, text, ok) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
 }
-function clearMsg(id){document.getElementById(id).className='msg'}
+function clearMsg(id) { document.getElementById(id).className = 'msg'; }
 
-async function doLogin(e){
+function baseHeaders() {
+  return { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
+}
+function authHeaders() {
+  return { ...baseHeaders(), 'Authorization': 'Bearer ' + session.access_token };
+}
+
+async function doRegister(e) {
   e.preventDefault();
-  const btn=document.getElementById('lBtn');
-  btn.disabled=true;btn.textContent='Logging in...';
+  const btn = document.getElementById('rBtn');
+  const username = document.getElementById('rUser').value.trim();
+  const display = (document.getElementById('rDisplay').value.trim()) || username;
+  const pw = document.getElementById('rPass').value;
+  if (pw !== document.getElementById('rPass2').value) {
+    showMsg('authMsg', 'Passwords do not match', false);
+    return false;
+  }
+  btn.disabled = true; btn.textContent = 'Creating...';
   clearMsg('authMsg');
-  try{
-    const r=await fetch(API+'/parse/login',{method:'POST',headers:{...h,'X-Parse-Revocable-Session':'1'},body:JSON.stringify({username:document.getElementById('lUser').value,password:document.getElementById('lPass').value})});
-    const d=await r.json();
-    if(!r.ok) throw new Error(d.error||'Login failed');
-    localStorage.setItem('sm_session',d.sessionToken);
-    session=d.sessionToken;
-    showMsg('authMsg','Login successful!',true);
-    setTimeout(()=>loadProfile(),500);
-  }catch(err){showMsg('authMsg',err.message,false)}
-  finally{btn.disabled=false;btn.textContent='Login'}
+  try {
+    const body = {
+      email: usernameToEmail(username),
+      password: pw,
+      data: { username, display_name: display }
+    };
+    const r = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+      method: 'POST', headers: baseHeaders(), body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.msg || d.error_description || d.error || 'Registration failed');
+    if (!d.access_token) throw new Error('Email confirmation required. Disable it in Supabase -> Authentication -> Providers -> Email.');
+
+    session = { access_token: d.access_token, refresh_token: d.refresh_token };
+    localStorage.setItem('sm_session', JSON.stringify(session));
+    showMsg('authMsg', 'Account created!', true);
+    setTimeout(() => loadProfile(), 400);
+  } catch (err) {
+    showMsg('authMsg', err.message, false);
+  }
+  finally { btn.disabled = false; btn.textContent = 'Create Account'; }
   return false;
 }
 
-async function doRegister(e){
+async function doLogin(e) {
   e.preventDefault();
-  const btn=document.getElementById('rBtn');
-  const pw=document.getElementById('rPass').value;
-  if(pw!==document.getElementById('rPass2').value){showMsg('authMsg','Passwords do not match',false);return false}
-  btn.disabled=true;btn.textContent='Creating...';
+  const btn = document.getElementById('lBtn');
+  const username = document.getElementById('lUser').value.trim();
+  const pw = document.getElementById('lPass').value;
+  btn.disabled = true; btn.textContent = 'Logging in...';
   clearMsg('authMsg');
-  try{
-    const body={username:document.getElementById('rUser').value,password:pw};
-    const dn=document.getElementById('rDisplay').value.trim();
-    if(dn) body.displayName=dn;
-    const r=await fetch(API+'/parse/users',{method:'POST',headers:{...h,'X-Parse-Revocable-Session':'1'},body:JSON.stringify(body)});
-    const d=await r.json();
-    if(!r.ok) throw new Error(d.error||'Registration failed');
-    localStorage.setItem('sm_session',d.sessionToken);
-    session=d.sessionToken;
-    showMsg('authMsg','Account created!',true);
-    setTimeout(()=>loadProfile(),500);
-  }catch(err){showMsg('authMsg',err.message,false)}
-  finally{btn.disabled=false;btn.textContent='Create Account'}
+  try {
+    const body = { email: usernameToEmail(username), password: pw };
+    const r = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST', headers: baseHeaders(), body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error_description || d.msg || d.error || 'Login failed');
+
+    session = { access_token: d.access_token, refresh_token: d.refresh_token };
+    localStorage.setItem('sm_session', JSON.stringify(session));
+    showMsg('authMsg', 'Login successful!', true);
+    setTimeout(() => loadProfile(), 400);
+  } catch (err) {
+    showMsg('authMsg', err.message, false);
+  }
+  finally { btn.disabled = false; btn.textContent = 'Login'; }
   return false;
 }
 
-async function loadProfile(){
-  try{
-    const r=await fetch(API+'/parse/users/me',{headers:{...h,'X-Parse-Session-Token':session}});
-    if(!r.ok){logout();return}
-    userData=await r.json();
-    document.getElementById('authCard').style.display='none';
-    document.getElementById('profileCard').style.display='block';
-    const name=userData.displayName||userData.username;
-    document.getElementById('profAvatar').textContent=name[0].toUpperCase();
-    document.getElementById('profName').textContent=name;
-    document.getElementById('profUser').textContent='@'+userData.username;
-    document.getElementById('profDisplay').textContent=userData.displayName||'Not set';
-    document.getElementById('editDisplay').value=userData.displayName||'';
-    const created=new Date(userData.createdAt);
-    document.getElementById('profCreated').textContent=created.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
-  }catch(err){logout()}
+async function loadProfile() {
+  try {
+    const userR = await fetch(SUPABASE_URL + '/auth/v1/user', { headers: authHeaders() });
+    if (!userR.ok) { logout(); return; }
+    const u = await userR.json();
+
+    const profR = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + u.id + '&select=*', { headers: authHeaders() });
+    const profArr = await profR.json();
+    profile = (profArr && profArr[0]) || { id: u.id, username: '?', display_name: '?', created_at: u.created_at };
+
+    document.getElementById('authCard').style.display = 'none';
+    document.getElementById('profileCard').style.display = 'block';
+
+    const name = profile.display_name || profile.username;
+    document.getElementById('profAvatar').textContent = (name[0] || '?').toUpperCase();
+    document.getElementById('profName').textContent = name;
+    document.getElementById('profUser').textContent = '@' + profile.username;
+    document.getElementById('profDisplay').textContent = profile.display_name || 'Not set';
+    document.getElementById('editDisplay').value = profile.display_name || '';
+    const created = new Date(profile.created_at || u.created_at);
+    document.getElementById('profCreated').textContent = created.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch (err) { logout(); }
 }
 
-async function updateDisplayName(){
-  const dn=document.getElementById('editDisplay').value.trim();
-  if(!dn){showMsg('profMsg','Enter a display name',false);return}
+async function updateDisplayName() {
+  const dn = document.getElementById('editDisplay').value.trim();
+  if (!dn) { showMsg('profMsg', 'Enter a display name', false); return; }
   clearMsg('profMsg');
-  try{
-    const r=await fetch(API+'/parse/users/'+userData.objectId,{method:'PUT',headers:{...h,'X-Parse-Session-Token':session},body:JSON.stringify({displayName:dn})});
-    if(!r.ok){const d=await r.json();throw new Error(d.error||'Update failed')}
-    userData.displayName=dn;
-    document.getElementById('profDisplay').textContent=dn;
-    document.getElementById('profName').textContent=dn;
-    document.getElementById('profAvatar').textContent=dn[0].toUpperCase();
-    showMsg('profMsg','Display name updated!',true);
-  }catch(err){showMsg('profMsg',err.message,false)}
+  try {
+    // Check availability via RPC
+    const availR = await fetch(SUPABASE_URL + '/rest/v1/rpc/is_display_name_available', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ p_name: dn, p_exclude_user: profile.id })
+    });
+    const availBody = await availR.text();
+    if (availBody.trim() !== 'true') throw new Error('Name already taken');
+
+    const r = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + profile.id, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify({ display_name: dn })
+    });
+    if (!r.ok) {
+      const d = await r.json();
+      throw new Error(d.message || 'Update failed');
+    }
+    profile.display_name = dn;
+    document.getElementById('profDisplay').textContent = dn;
+    document.getElementById('profName').textContent = dn;
+    document.getElementById('profAvatar').textContent = dn[0].toUpperCase();
+    showMsg('profMsg', 'Display name updated!', true);
+  } catch (err) {
+    showMsg('profMsg', err.message, false);
+  }
 }
 
-function launchGame(){
-  window.location.href='stumblemod://launch';
+function copyToken() {
+  if (!session) return;
+  const tok = session.access_token + '|' + session.refresh_token;
+  const payload = JSON.stringify({ token: tok });
+  navigator.clipboard.writeText(payload).then(() => {
+    showMsg('profMsg', 'Token copied! Paste it into Mods/StumbleMod_auth.json', true);
+  });
 }
 
-function logout(){
-  if(session){
-    fetch(API+'/parse/logout',{method:'POST',headers:{...h,'X-Parse-Session-Token':session}}).catch(()=>{});
+function launchGame() {
+  if (session) {
+    const tok = session.access_token + '|' + session.refresh_token;
+    const payload = JSON.stringify({ token: tok });
+    navigator.clipboard.writeText(payload).catch(() => {});
+  }
+  window.location.href = 'stumblemod://launch';
+}
+
+function logout() {
+  if (session?.access_token) {
+    fetch(SUPABASE_URL + '/auth/v1/logout', { method: 'POST', headers: authHeaders() }).catch(() => {});
   }
   localStorage.removeItem('sm_session');
-  session=null;userData=null;
-  document.getElementById('authCard').style.display='';
-  document.getElementById('profileCard').style.display='none';
-  clearMsg('authMsg');clearMsg('profMsg');
+  session = null; profile = null;
+  document.getElementById('authCard').style.display = '';
+  document.getElementById('profileCard').style.display = 'none';
+  clearMsg('authMsg'); clearMsg('profMsg');
 }
 </script>
 </body>
