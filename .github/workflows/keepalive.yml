@@ -1,0 +1,51 @@
+name: Supabase Keep-Alive
+
+# Supabase pauses free-tier projects after 7 consecutive days without any
+# database/auth/storage traffic. This workflow pings the REST API every
+# 3 days so the inactivity counter never reaches zero.
+#
+# Secrets required:
+#   SUPABASE_URL       e.g. https://hdgjprvsaovblpnukjys.supabase.co
+#   SUPABASE_ANON_KEY  the public "anon" key (safe to share in GH secrets)
+
+on:
+  schedule:
+    # At 03:00 UTC every 3 days. A 3-day cadence gives us comfortable
+    # headroom against the 7-day idle limit even if a run is skipped.
+    - cron: '0 3 */3 * *'
+  workflow_dispatch:    # lets you trigger a ping manually from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Supabase REST (profiles)
+        env:
+          URL:  ${{ secrets.SUPABASE_URL }}
+          KEY:  ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -e
+          echo "Pinging ${URL}/rest/v1/profiles?select=id&limit=1"
+          curl -fsS "${URL}/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: ${KEY}" \
+            -H "Authorization: Bearer ${KEY}" \
+            -o /tmp/profiles.json
+          echo "OK - Supabase responded."
+          head -c 200 /tmp/profiles.json || true
+
+      - name: Ping Supabase Auth health
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -e
+          echo "Pinging ${URL}/auth/v1/health"
+          curl -fsS "${URL}/auth/v1/health" \
+            -H "apikey: ${KEY}" \
+            -o /tmp/auth_health.json
+          echo "OK - GoTrue responded."
+          cat /tmp/auth_health.json
