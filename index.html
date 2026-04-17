@@ -148,8 +148,82 @@ let session = null;
 try { const raw = localStorage.getItem('sm_session'); if (raw) session = JSON.parse(raw); } catch(e) {}
 let profile = null;
 let authUserEmail = '';
+let recoveryMode = false;
 
-if (session?.access_token) loadProfile();
+// Handle auth links: confirmation & password recovery come back with tokens in URL hash
+(function handleAuthHash() {
+  if (!location.hash) return;
+  const params = new URLSearchParams(location.hash.substring(1));
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  const type = params.get('type');
+  const errorDesc = params.get('error_description');
+
+  if (errorDesc) {
+    setTimeout(() => showMsg('authMsg', decodeURIComponent(errorDesc.replace(/\+/g, ' ')), false), 100);
+    history.replaceState(null, '', location.pathname);
+    return;
+  }
+
+  if (accessToken) {
+    session = { access_token: accessToken, refresh_token: refreshToken || '' };
+    localStorage.setItem('sm_session', JSON.stringify(session));
+    history.replaceState(null, '', location.pathname);
+
+    if (type === 'recovery') {
+      recoveryMode = true;
+      setTimeout(showRecoveryScreen, 100);
+      return;
+    }
+    // signup/confirmation -> fall through to loadProfile
+  }
+})();
+
+if (session?.access_token && !recoveryMode) loadProfile();
+
+function showConfirmScreen(email) {
+  document.getElementById('authCard').innerHTML =
+    '<div style="text-align:center;padding:16px 0">' +
+    '<div style="font-size:48px;margin-bottom:16px">&#128231;</div>' +
+    '<h2 style="margin-bottom:12px;color:var(--accent)">Check your email</h2>' +
+    '<p style="color:var(--text);margin-bottom:20px">We sent a confirmation link to:<br><strong>' + email + '</strong></p>' +
+    '<p style="color:var(--text2);font-size:13px;margin-bottom:20px">Click the link in the email to activate your account. After that, come back here and log in.</p>' +
+    '<button class="btn-outline" onclick="location.reload()">Back to Login</button>' +
+    '</div>';
+}
+
+function showRecoveryScreen() {
+  document.getElementById('authCard').innerHTML =
+    '<div style="text-align:center;padding:8px 0 16px">' +
+    '<h2 style="margin-bottom:8px;color:var(--accent)">Set a New Password</h2>' +
+    '<p style="color:var(--text2);font-size:13px;margin-bottom:20px">Choose a new password for your account.</p>' +
+    '</div>' +
+    '<div class="form-group"><label>New Password</label>' +
+    '<input type="password" id="recPass" placeholder="At least 6 characters" minlength="6"></div>' +
+    '<div class="form-group"><label>Confirm Password</label>' +
+    '<input type="password" id="recPass2" placeholder="Confirm"></div>' +
+    '<button class="btn" onclick="doUpdatePassword()">Update Password</button>' +
+    '<div class="msg" id="authMsg"></div>';
+}
+
+async function doUpdatePassword() {
+  const p1 = document.getElementById('recPass').value;
+  const p2 = document.getElementById('recPass2').value;
+  clearMsg('authMsg');
+  if (p1.length < 6) { showMsg('authMsg', 'Password too short', false); return; }
+  if (p1 !== p2) { showMsg('authMsg', 'Passwords do not match', false); return; }
+
+  try {
+    const r = await fetch(SUPABASE_URL + '/auth/v1/user', {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ password: p1 })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.msg || d.error_description || 'Update failed');
+    showMsg('authMsg', 'Password updated! Redirecting...', true);
+    setTimeout(() => { recoveryMode = false; location.reload(); }, 1500);
+  } catch (err) { showMsg('authMsg', err.message, false); }
+}
 
 function switchTab(t) {
   document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', i === (t === 'login' ? 0 : 1)));
@@ -195,21 +269,28 @@ async function doRegister(e) {
       if (txt !== 'true') throw new Error('Display name already taken');
     }
 
+    const redirectTo = location.origin + location.pathname;
     const body = {
       email, password: pw,
-      data: { display_name: display }
+      data: { display_name: display },
+      options: { email_redirect_to: redirectTo }
     };
     const r = await fetch(SUPABASE_URL + '/auth/v1/signup', {
       method: 'POST', headers: baseHeaders(), body: JSON.stringify(body)
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.msg || d.error_description || d.error || 'Registration failed');
-    if (!d.access_token) throw new Error('Email confirmation required. Disable it in Supabase Dashboard -> Authentication -> Providers -> Email.');
 
-    session = { access_token: d.access_token, refresh_token: d.refresh_token };
-    localStorage.setItem('sm_session', JSON.stringify(session));
-    showMsg('authMsg', 'Account created!', true);
-    setTimeout(() => loadProfile(), 400);
+    if (d.access_token) {
+      // Email confirmation is disabled -> log in immediately
+      session = { access_token: d.access_token, refresh_token: d.refresh_token };
+      localStorage.setItem('sm_session', JSON.stringify(session));
+      showMsg('authMsg', 'Account created!', true);
+      setTimeout(() => loadProfile(), 400);
+    } else {
+      // Email verification enabled -> user must click email link
+      showConfirmScreen(email);
+    }
   } catch (err) {
     showMsg('authMsg', err.message, false);
   }
@@ -248,9 +329,10 @@ async function doForgot() {
   if (!email) { showMsg('authMsg', 'Enter your email first', false); return; }
 
   try {
-    const r = await fetch(SUPABASE_URL + '/auth/v1/recover', {
+    const redirectTo = location.origin + location.pathname;
+    const r = await fetch(SUPABASE_URL + '/auth/v1/recover?redirect_to=' + encodeURIComponent(redirectTo), {
       method: 'POST', headers: baseHeaders(),
-      body: JSON.stringify({ email, redirect_to: location.origin + location.pathname })
+      body: JSON.stringify({ email })
     });
     if (!r.ok) {
       const d = await r.json().catch(() => ({}));
